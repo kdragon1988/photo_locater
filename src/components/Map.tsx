@@ -53,7 +53,7 @@ export function Map({ photos }: { photos: any[] }) {
         });
 
         // カメラの向きを示す矢印を追加
-        if (photo.heading) {
+        if (photo.heading !== undefined && photo.heading !== null) {
           const heading = photo.heading;
           const arrow = new google.maps.Marker({
             position: { lat: photo.latitude, lng: photo.longitude },
@@ -72,13 +72,14 @@ export function Map({ photos }: { photos: any[] }) {
         }
 
         // クリック時の情報ウィンドウ
+        const takenAtText = photo.takenAt
+          ? new Date(photo.takenAt).toLocaleString()
+          : "日時不明";
         const infoWindow = new google.maps.InfoWindow({
           content: `
             <div class="p-2">
               <img src="${photo.url}" alt="写真" class="w-32 h-32 object-cover mb-2" />
-              <p class="text-sm">撮影日時: ${new Date(
-                photo.takenAt
-              ).toLocaleString()}</p>
+              <p class="text-sm">撮影日時: ${takenAtText}</p>
             </div>
           `,
         });
