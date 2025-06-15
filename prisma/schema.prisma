@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ユーザーモデル
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  collections   Collection[]
+  sharedCollections CollectionShare[]
+}
+
+// コレクションモデル
+model Collection {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  photos      Photo[]
+  shares      CollectionShare[]
+}
+
+// 写真モデル
+model Photo {
+  id          String    @id @default(cuid())
+  url         String
+  latitude    Float?
+  longitude   Float?
+  heading     Float?
+  takenAt     DateTime?
+  exifData    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  collectionId String
+  collection  Collection @relation(fields: [collectionId], references: [id])
+}
+
+// コレクション共有モデル
+model CollectionShare {
+  id            String    @id @default(cuid())
+  collectionId  String
+  userId        String
+  permission    Permission
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  collection    Collection @relation(fields: [collectionId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@unique([collectionId, userId])
+}
+
+// 権限の種類
+enum Permission {
+  VIEWER
+  EDITOR
+  ADMIN
+} 
