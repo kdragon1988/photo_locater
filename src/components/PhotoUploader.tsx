@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useSession } from "next-auth/react";
 
@@ -10,12 +10,23 @@ import { useSession } from "next-auth/react";
  */
 export function PhotoUploader() {
   const { data: session } = useSession();
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<{ file: File; preview: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 生成したオブジェクトURLをクリーンアップ
+  useEffect(() => {
+    return () => {
+      files.forEach((f) => URL.revokeObjectURL(f.preview));
+    };
+  }, [files]);
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    setFiles((prev) => [...prev, ...acceptedFiles]);
+    const mapped = acceptedFiles.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    setFiles((prev) => [...prev, ...mapped]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -36,8 +47,8 @@ export function PhotoUploader() {
 
     try {
       const formData = new FormData();
-      files.forEach((file) => {
-        formData.append("files", file);
+      files.forEach((f) => {
+        formData.append("files", f.file);
       });
 
       const response = await fetch("/api/upload", {
@@ -49,6 +60,7 @@ export function PhotoUploader() {
         throw new Error("アップロードに失敗しました");
       }
 
+      files.forEach((f) => URL.revokeObjectURL(f.preview));
       setFiles([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "アップロードに失敗しました");
@@ -76,18 +88,18 @@ export function PhotoUploader() {
       {files.length > 0 && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {files.map((file, index) => (
+            {files.map((fileWrapper, index) => (
               <div
                 key={index}
                 className="relative aspect-square border rounded-lg overflow-hidden"
               >
                 <img
-                  src={URL.createObjectURL(file)}
-                  alt={file.name}
+                  src={fileWrapper.preview}
+                  alt={fileWrapper.file.name}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-sm truncate">
-                  {file.name}
+                  {fileWrapper.file.name}
                 </div>
               </div>
             ))}
